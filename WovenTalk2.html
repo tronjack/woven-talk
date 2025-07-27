@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>WovenTalk - WebRTC SIP Phone</title>
   <script src="https://unpkg.com/sip.js@0.20.0"></script>
   <style>
@@ -10,8 +10,8 @@
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       background: linear-gradient(to right, #1e1e2f, #282840);
       color: white;
-      text-align: center;
-      padding: 2rem;
+      margin: 0;
+      padding: 1rem;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -19,70 +19,78 @@
     }
     h1 {
       font-size: 2.5rem;
-      margin-bottom: 0.5rem;
       background: linear-gradient(90deg, #00d2ff, #3a47d5);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
+      margin-bottom: 0;
     }
     h2 {
-      font-size: 1.1rem;
+      font-size: 1rem;
+      color: #bbb;
       margin-bottom: 2rem;
+    }
+    input, label {
+      display: block;
+      width: 100%;
+      max-width: 320px;
+      font-size: 16px;
+      margin: 0 auto 1rem;
+    }
+    label {
+      text-align: left;
       color: #ccc;
+      margin-bottom: 0.25rem;
     }
     input {
       padding: 12px;
       border-radius: 10px;
       border: 1px solid #444;
-      font-size: 16px;
-      margin-bottom: 1rem;
-      width: 100%;
-      max-width: 320px;
       background-color: #2e2e3e;
       color: white;
     }
     #destination {
       border: 2px solid #64dd17;
-      font-weight: bold;
       background-color: #3a3a4a;
+      font-weight: bold;
     }
     button {
-      margin: 10px;
-      padding: 14px 28px;
+      padding: 14px 20px;
       font-size: 16px;
       font-weight: bold;
       border: none;
       border-radius: 10px;
       cursor: pointer;
-      transition: background-color 0.2s ease-in-out, transform 0.1s ease-in-out;
+      margin: 0.5rem;
+      transition: background 0.3s ease, transform 0.2s ease;
+      width: 140px;
     }
     .call {
       background: linear-gradient(to right, #00c853, #64dd17);
-      color: white;
     }
     .hangup {
       background: linear-gradient(to right, #d50000, #ff1744);
-      color: white;
     }
-    .call:hover, .hangup:hover {
+    button:hover {
       transform: scale(1.05);
     }
-    #controls, #contacts, #chat {
+    .panel {
       background: rgba(255, 255, 255, 0.05);
       padding: 2rem;
       border-radius: 20px;
-      box-shadow: 0 0 20px rgba(0,0,0,0.5);
-      margin-top: 2rem;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.4);
+      margin: 1.5rem 0;
       width: 100%;
       max-width: 600px;
     }
     #status {
-      margin-top: 1.5rem;
+      margin-top: 1rem;
       font-size: 1.1rem;
       color: #90caf9;
     }
     ul {
       list-style: none;
       padding: 0;
+      margin-top: 1rem;
       text-align: left;
     }
     li {
@@ -97,23 +105,40 @@
       padding: 1rem;
       margin-bottom: 1rem;
     }
+    @media (min-width: 600px) {
+      #button-row {
+        display: flex;
+        justify-content: center;
+      }
+    }
   </style>
 </head>
 <body>
   <h1>WovenTalk</h1>
   <h2>By Jordan Oamelda</h2>
 
-  <div id="controls">
-    <input type="text" id="sipUri" placeholder="Your SIP URI (e.g. sip:8000@domain.com)" />
+  <div id="controls" class="panel">
+    <label for="sipUri">SIP URI</label>
+    <input type="text" id="sipUri" placeholder="e.g. sip:8000@domain.com" />
+
+    <label for="username">Username</label>
     <input type="text" id="username" placeholder="SIP Username" />
+
+    <label for="password">Password</label>
     <input type="password" id="password" placeholder="SIP Password" />
-    <input type="text" id="destination" placeholder="Enter SIP destination (e.g. 9001@domain.com)" />
-    <button class="call" onclick="registerAndCall()">📞 Call</button>
-    <button class="hangup" onclick="hangUp()">❌ Hang Up</button>
-    <p id="status">Ready...</p>
+
+    <label for="destination">Destination</label>
+    <input type="text" id="destination" placeholder="e.g. 9001@domain.com" />
+
+    <div id="button-row">
+      <button class="call" onclick="registerAndCall()">📞 Call</button>
+      <button class="hangup" onclick="hangUp()">❌ Hang Up</button>
+    </div>
+
+    <p id="status">Waiting for input...</p>
   </div>
 
-  <div id="contacts">
+  <div id="contacts" class="panel">
     <h3>Team Extensions</h3>
     <ul>
       <li>4000 - Elwood Wraith</li>
@@ -129,7 +154,7 @@
     </ul>
   </div>
 
-  <div id="chat">
+  <div id="chat" class="panel">
     <h3>Team Chat</h3>
     <div id="chat-messages">
       <p><strong>Elwood:</strong> Let’s sync after the next call.</p>
@@ -142,6 +167,24 @@
     let userAgent;
     let session;
 
+    function allInputsFilled() {
+      return (
+        document.getElementById('sipUri').value.trim() &&
+        document.getElementById('username').value.trim() &&
+        document.getElementById('password').value.trim() &&
+        document.getElementById('destination').value.trim()
+      );
+    }
+
+    function updateStatus() {
+      const statusEl = document.getElementById('status');
+      if (allInputsFilled()) {
+        statusEl.textContent = 'Ready...';
+      } else {
+        statusEl.textContent = 'Waiting for input...';
+      }
+    }
+
     function registerAndCall() {
       const sipUri = document.getElementById('sipUri').value.trim();
       const username = document.getElementById('username').value.trim();
@@ -149,6 +192,7 @@
       const destination = document.getElementById('destination').value.trim();
 
       if (!sipUri || !username || !password || !destination) {
+        document.getElementById('status').textContent = 'Missing SIP credentials or destination.';
         alert('Please fill in all SIP credentials and destination.');
         return;
       }
@@ -162,9 +206,7 @@
         authorizationPassword: password,
         sessionDescriptionHandlerFactoryOptions: {
           peerConnectionConfiguration: {
-            iceServers: [
-              { urls: 'stun:stun.l.google.com:19302' }
-            ]
+            iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
           }
         }
       });
@@ -200,6 +242,12 @@
         document.getElementById('status').textContent = 'Call ended';
       }
     }
+
+    // Attach live listeners to inputs
+    document.getElementById('sipUri').addEventListener('input', updateStatus);
+    document.getElementById('username').addEventListener('input', updateStatus);
+    document.getElementById('password').addEventListener('input', updateStatus);
+    document.getElementById('destination').addEventListener('input', updateStatus);
   </script>
 </body>
 </html>
