@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WovenTalk - WebRTC SIP Phone</title>
+  <script src="https://unpkg.com/sip.js@0.20.0"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(to right, #1e1e2f, #282840);
+      color: white;
+      text-align: center;
+      padding: 2rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(90deg, #00d2ff, #3a47d5);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    h2 {
+      font-size: 1.1rem;
+      margin-bottom: 2rem;
+      color: #ccc;
+    }
+    input {
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid #444;
+      font-size: 16px;
+      margin-bottom: 1rem;
+      width: 100%;
+      max-width: 320px;
+      background-color: #2e2e3e;
+      color: white;
+    }
+    #destination {
+      border: 2px solid #64dd17;
+      font-weight: bold;
+      background-color: #3a3a4a;
+    }
+    button {
+      margin: 10px;
+      padding: 14px 28px;
+      font-size: 16px;
+      font-weight: bold;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background-color 0.2s ease-in-out, transform 0.1s ease-in-out;
+    }
+    .call {
+      background: linear-gradient(to right, #00c853, #64dd17);
+      color: white;
+    }
+    .hangup {
+      background: linear-gradient(to right, #d50000, #ff1744);
+      color: white;
+    }
+    .call:hover, .hangup:hover {
+      transform: scale(1.05);
+    }
+    #controls, #contacts, #chat {
+      background: rgba(255, 255, 255, 0.05);
+      padding: 2rem;
+      border-radius: 20px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.5);
+      margin-top: 2rem;
+      width: 100%;
+      max-width: 600px;
+    }
+    #status {
+      margin-top: 1.5rem;
+      font-size: 1.1rem;
+      color: #90caf9;
+    }
+    ul {
+      list-style: none;
+      padding: 0;
+      text-align: left;
+    }
+    li {
+      padding: 0.5rem;
+      border-bottom: 1px solid #555;
+    }
+    #chat-messages {
+      height: 150px;
+      overflow-y: auto;
+      background-color: #2e2e3e;
+      border-radius: 10px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>WovenTalk</h1>
+  <h2>By Jordan Oamelda</h2>
+
+  <div id="controls">
+    <input type="text" id="sipUri" placeholder="Your SIP URI (e.g. sip:8000@domain.com)" />
+    <input type="text" id="username" placeholder="SIP Username" />
+    <input type="password" id="password" placeholder="SIP Password" />
+    <input type="text" id="destination" placeholder="Enter SIP destination (e.g. 9001@domain.com)" />
+    <button class="call" onclick="registerAndCall()">📞 Call</button>
+    <button class="hangup" onclick="hangUp()">❌ Hang Up</button>
+    <p id="status">Ready...</p>
+  </div>
+
+  <div id="contacts">
+    <h3>Team Extensions</h3>
+    <ul>
+      <li>4000 - Elwood Wraith</li>
+      <li>4001 - Mavis Quill</li>
+      <li>4002 - Dorian Vox</li>
+      <li>4003 - Lyra Frost</li>
+      <li>4004 - Thorne Bellamy</li>
+      <li>4005 - Zephyr Calder</li>
+      <li>4006 - Indigo Rae</li>
+      <li>4007 - Orion Vale</li>
+      <li>4008 - Nova Thatch</li>
+      <li>4009 - Cobalt Flynn</li>
+    </ul>
+  </div>
+
+  <div id="chat">
+    <h3>Team Chat</h3>
+    <div id="chat-messages">
+      <p><strong>Elwood:</strong> Let’s sync after the next call.</p>
+      <p><strong>Mavis:</strong> Confirmed!</p>
+    </div>
+    <input type="text" placeholder="Type a message..." />
+  </div>
+
+  <script>
+    let userAgent;
+    let session;
+
+    function registerAndCall() {
+      const sipUri = document.getElementById('sipUri').value.trim();
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value.trim();
+      const destination = document.getElementById('destination').value.trim();
+
+      if (!sipUri || !username || !password || !destination) {
+        alert('Please fill in all SIP credentials and destination.');
+        return;
+      }
+
+      userAgent = new SIP.UserAgent({
+        uri: sipUri,
+        transportOptions: {
+          server: 'wss://' + sipUri.split('@')[1] + ':7443/ws',
+        },
+        authorizationUsername: username,
+        authorizationPassword: password,
+        sessionDescriptionHandlerFactoryOptions: {
+          peerConnectionConfiguration: {
+            iceServers: [
+              { urls: 'stun:stun.l.google.com:19302' }
+            ]
+          }
+        }
+      });
+
+      userAgent.start().then(() => {
+        document.getElementById('status').textContent = 'Registered. Calling...';
+        call(destination);
+      }).catch(e => {
+        console.error('User agent start failed', e);
+        document.getElementById('status').textContent = 'Failed to register SIP.js';
+      });
+    }
+
+    function call(dest) {
+      session = userAgent.invite(`sip:${dest}`, {
+        sessionDescriptionHandlerOptions: {
+          constraints: {
+            audio: true,
+            video: true
+          }
+        }
+      });
+
+      session.stateChange.addListener((state) => {
+        document.getElementById('status').textContent = `Call status: ${state}`;
+        console.log(`Session state changed to ${state}`);
+      });
+    }
+
+    function hangUp() {
+      if (session) {
+        session.bye();
+        document.getElementById('status').textContent = 'Call ended';
+      }
+    }
+  </script>
+</body>
+</html>
